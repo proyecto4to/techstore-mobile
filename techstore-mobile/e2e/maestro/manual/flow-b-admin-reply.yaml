@@ -1,0 +1,21 @@
+appId: com.techstore.mobile
+name: "Flujo B manual - recibir respuesta de Admin Web"
+tags:
+  - manual-admin
+---
+- launchApp:
+    clearState: true
+- clearKeychain
+- runFlow:
+    file: "../common/login.yaml"
+    env:
+      E2E_EMAIL: ${E2E_CHAT_EMAIL}
+      E2E_PASSWORD: ${E2E_CHAT_PASSWORD}
+- openLink: "techstore://chat/${E2E_CONVERSATION_ID}"
+- extendedWaitUntil:
+    visible: "Cliente ↔ TechStore"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: ${E2E_ADMIN_REPLY}
+    timeout: 60000
+- assertVisible: "En vivo"

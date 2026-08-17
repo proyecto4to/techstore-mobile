@@ -1,0 +1,44 @@
+appId: com.techstore.mobile
+name: "Flujo B - pedido, chat y recuperación REST"
+tags:
+  - critical
+  - chat
+---
+- launchApp:
+    clearState: true
+- clearKeychain
+- runFlow:
+    file: "../common/login.yaml"
+    env:
+      E2E_EMAIL: ${E2E_CHAT_EMAIL}
+      E2E_PASSWORD: ${E2E_CHAT_PASSWORD}
+- tapOn: "Pedidos"
+- extendedWaitUntil:
+    visible: "Pedido N.º ${E2E_ORDER_NUMBER}"
+    timeout: 15000
+- tapOn: "Pedido N.º ${E2E_ORDER_NUMBER}"
+- tapOn: "Consultar sobre este pedido"
+- tapOn:
+    id: "new-conversation-message"
+- inputText: ${E2E_INITIAL_MESSAGE}
+- tapOn:
+    id: "new-conversation-submit"
+- extendedWaitUntil:
+    visible: "Cliente ↔ TechStore"
+    timeout: 15000
+- tapOn:
+    id: "chat-message"
+- inputText: ${E2E_FOLLOWUP_MESSAGE}
+- tapOn:
+    id: "chat-send"
+- assertVisible: ${E2E_FOLLOWUP_MESSAGE}
+- pressKey: Home
+- killApp
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: ${E2E_FOLLOWUP_MESSAGE}
+    timeout: 20000
+- extendedWaitUntil:
+    visible: "En vivo"
+    timeout: 20000

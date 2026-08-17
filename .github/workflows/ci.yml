@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: "true"
+
+jobs:
+  security:
+    name: Repositorio (secretos + supply chain)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verificar secretos, credenciales, puertos y actions
+        run: node scripts/ci-security-check.mjs
+
+  codeql:
+    name: SAST (javascript-typescript)
+    if: github.event.repository.visibility == 'public' || vars.ENABLE_CODEQL == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          queries: security-extended
+      - name: Analizar
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
+        with:
+          category: /language:javascript-typescript
+
+  mobile:
+    name: Mobile (Expo SDK 57)
+    needs: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: techstore-mobile
+    env:
+      EXPO_PUBLIC_APP_ENV: preview
+      EXPO_PUBLIC_API_URL: http://127.0.0.1:8090/api/v1
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Configurar Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: techstore-mobile/package-lock.json
+          package-manager-cache: true
+      - name: Instalar dependencias reproducibles
+        run: npm ci
+      - name: Ejecutar TypeScript, lint y Jest
+        run: npm run check
+      - name: Validar flujos Maestro y selectores
+        run: npm run e2e:validate
+      - name: Validar perfiles EAS y aislamiento del upload
+        run: npm run build:validate
+      - name: Validar configuración Expo
+        run: npx expo config --type public
+      - name: Ejecutar Expo Doctor
+        run: npm run doctor
+      - name: Exportar bundle Android Hermes
+        run: npx expo export --platform android --output-dir dist-ci --max-workers 2
+      - name: Bloquear vulnerabilidades críticas de producción
+        run: npm audit --omit=dev --audit-level=critical
+      - name: Generar y revisar SBOM CycloneDX
+        run: |
+          mkdir -p ../artifacts
+          npm sbom --sbom-format cyclonedx > ../artifacts/mobile.cdx.json
+          node ../scripts/review-sbom-licenses.mjs ../artifacts/mobile.cdx.json
+      - name: Inspeccionar export Android
+        run: node ../scripts/ci-security-check.mjs --artifact dist-ci
+      - name: Conservar SBOM mobile
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom-mobile
+          path: artifacts/mobile.cdx.json
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: America/Asuncion
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /techstore-mobile
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:30"
+      timezone: America/Asuncion
+    open-pull-requests-limit: 5
+    groups:
+      mobile-dependencies:
+        patterns:
+          - "*"

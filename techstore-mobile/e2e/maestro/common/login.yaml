@@ -1,0 +1,15 @@
+appId: com.techstore.mobile
+---
+- tapOn: "Cuenta"
+- tapOn: "Iniciar sesión"
+- tapOn:
+    id: "login-email"
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible: "Mi cuenta"
+    timeout: 15000

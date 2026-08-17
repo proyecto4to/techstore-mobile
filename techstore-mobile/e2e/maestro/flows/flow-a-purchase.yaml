@@ -1,0 +1,117 @@
+appId: com.techstore.mobile
+name: "Flujo A - registro, compra y tracking"
+tags:
+  - critical
+  - purchase
+---
+- launchApp:
+    clearState: true
+- clearKeychain
+- tapOn: "Cuenta"
+- tapOn: "Iniciar sesión"
+- tapOn:
+    id: "login-register"
+- tapOn:
+    id: "register-nombre"
+- inputText: "Cliente"
+- tapOn:
+    id: "register-apellido"
+- inputText: "E2E"
+- tapOn:
+    id: "register-email"
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: "register-password"
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: "register-confirm-password"
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: "register-submit"
+- extendedWaitUntil:
+    visible: "Mi cuenta"
+    timeout: 15000
+- tapOn: "Cerrar sesión"
+- extendedWaitUntil:
+    visible: "Iniciar sesión"
+    timeout: 15000
+- tapOn: "Iniciar sesión"
+- tapOn:
+    id: "login-email"
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: "login-password"
+- inputText: ${E2E_PASSWORD}
+- tapOn:
+    id: "login-submit"
+- extendedWaitUntil:
+    visible: "Mi cuenta"
+    timeout: 15000
+- tapOn: "Buscar"
+- tapOn:
+    id: "catalog-search"
+- inputText: ${E2E_PRODUCT_QUERY}
+- extendedWaitUntil:
+    visible:
+      id: "catalog-product-${E2E_PRODUCT_ID}"
+    timeout: 15000
+- tapOn:
+    id: "catalog-product-${E2E_PRODUCT_ID}"
+- tapOn:
+    id: "product-add-to-cart"
+- extendedWaitUntil:
+    visible:
+      id: "cart-checkout"
+    timeout: 15000
+- tapOn:
+    id: "cart-checkout"
+- assertVisible: "Dirección de entrega"
+- tapOn: "Agregar dirección"
+- tapOn:
+    id: "address-nombreDestinatario"
+- inputText: "Cliente E2E"
+- tapOn:
+    id: "address-telefono"
+- inputText: "0981123456"
+- tapOn:
+    id: "address-departamento"
+- inputText: "Central"
+- tapOn:
+    id: "address-ciudad"
+- inputText: "San Lorenzo"
+- tapOn:
+    id: "address-direccionLinea1"
+- inputText: "Avenida E2E 123"
+- tapOn:
+    id: "address-referencia"
+- inputText: "Porton negro frente a la plaza"
+- tapOn:
+    id: "address-save"
+- extendedWaitUntil:
+    visible:
+      id: "address-continue"
+    timeout: 15000
+- tapOn:
+    id: "address-continue"
+- extendedWaitUntil:
+    visible: ${E2E_SHIPPING_LABEL}
+    timeout: 15000
+- tapOn: ${E2E_SHIPPING_LABEL}
+- tapOn:
+    id: "shipping-continue"
+- tapOn:
+    id: "payment-PAGO_EN_LOCAL"
+- tapOn:
+    id: "payment-continue"
+- extendedWaitUntil:
+    visible:
+      id: "checkout-confirm"
+    timeout: 15000
+- tapOn:
+    id: "checkout-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "order-success"
+    timeout: 20000
+- tapOn: "Seguir mi pedido"
+- assertVisible: "Seguimiento"

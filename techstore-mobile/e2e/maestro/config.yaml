@@ -1,0 +1,4 @@
+appId: com.techstore.mobile
+flows:
+  - "flows/*.yaml"
+testOutputDir: artifacts

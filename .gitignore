@@ -1,0 +1,29 @@
+# Artefactos de build y herramientas descargadas: nunca se versionan.
+# Un APK son ~120 MB y se regenera con EAS; platform-tools se baja de Google.
+artifacts/
+tools/
+
+*.log
+*.dump
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Configuración local y credenciales
+.env*
+!.env.example
+*.p8
+*.p12
+*.pfx
+*.pem
+*.key
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+service-account*.json
+credentials.json
+secrets.local.ps1
+email.local.ps1
