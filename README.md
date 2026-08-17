@@ -22,10 +22,13 @@ El detalle de cada fase está en [docs/mobile/](docs/mobile), una nota de cierre
 ```
 techstore-mobile/        La aplicación Expo
 docs/mobile/             Cierre de las 15 fases, arquitectura, seguridad, builds
+docs/security/           Política de CI y cadena de suministro
 docs/api/                Contrato OpenAPI del que se generan los tipos del cliente
 scripts/                 E2E por ADB, inspección de firma de APK, gates de CI
 .easignore               Qué NO se sube al build remoto de EAS
 ```
+
+Los documentos de fase citan a veces `docs/security/SECURITY_HARDENING.md`, que quedó en el repositorio del backend: es un plan de mitigación común a los tres productos y no se duplicó acá.
 
 ## Empezar
 

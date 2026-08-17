@@ -119,7 +119,7 @@ El resultado se genera en `dist/`, carpeta ignorada por Git.
 - [Builds Android](../docs/mobile/BUILD_ANDROID.md)
 - [Preparación iOS](../docs/mobile/BUILD_IOS.md)
 - [Seguridad móvil](../docs/mobile/SECURITY.md)
-- [CI y cadena de suministro](https://github.com/proyecto4to/techstore/blob/main/docs/security/CI_SUPPLY_CHAIN.md) — la política vive en el repositorio de backend/web
+- [CI y cadena de suministro](../docs/security/CI_SUPPLY_CHAIN.md)
 - [Auditoría móvil previa](../docs/mobile/MOBILE_AUDIT.md)
 
 La documentación oficial de referencia debe consultarse en la versión exacta de [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/).
