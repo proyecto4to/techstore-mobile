@@ -1,7 +1,7 @@
 # Fase 15 — Builds y preparación de distribución
 
-**Estado:** implementación y builds terminados; aceptación física pendiente  
-**Fecha:** 2026-08-13
+**Estado:** implementación y builds terminados; recorrido crítico aceptado en dispositivo el 2026-08-17, con cuatro puntos del checklist todavía sin cubrir  
+**Fecha:** 2026-08-13, actualizado el 2026-08-17
 
 ## Resultado técnico
 
@@ -51,9 +51,32 @@ El APK v11 reemplaza al candidato v9 después de que MIUI rechazara su instalaci
 
 Ninguna. La Fase 15 no modifica el modelo de datos.
 
+## Prueba en dispositivo — 2026-08-17
+
+Ejecutada sobre un Xiaomi Redmi Note 8 Pro (Android 11, MIUI Global 12.5.8) con el APK v12 instalado por ADB y el backend sirviendo en la LAN.
+
+| Recorrido | Resultado |
+| --- | --- |
+| Arranque, splash e ícono | Verificado |
+| Alta de cuenta contra el backend | Verificado: usuario creado y sesión activa |
+| Cierre de sesión y reingreso | Verificado |
+| Catálogo, búsqueda y detalle de producto | Verificado: Gs. 45.000, IVA 10% incluido, disponibilidad |
+| Favoritos | Verificado en los dos sentidos, con persistencia entre corridas |
+| Carrito con revalidación de precio y stock | Verificado |
+| Dirección de entrega | Verificado |
+| Cotización de envío | Verificado: cuatro tarifas calculadas por el servidor según la dirección |
+| Método de pago y resumen | Verificado: total Gs. 135.000 |
+| **Confirmación del pedido** | **Verificado: pedido 58 registrado, carrito vaciado** |
+| Historial de pedidos | Verificado: el pedido aparece en Mis pedidos como Pendiente |
+
+La evidencia —volcados de pantalla y capturas de cada paso— queda en `artifacts/device-e2e/run`, fuera del repositorio.
+
+El recorrido está automatizado en `scripts/device-e2e.ps1`. La prueba modifica temporalmente el teléfono —apaga las animaciones y lo mantiene despierto— y lo restaura al terminar, incluso si el recorrido falla; si el cable se suelta, espera a que el dispositivo vuelva y, si no vuelve, imprime las órdenes para dejarlo como estaba.
+
 ## Pendientes
 
-- Ejecutar el checklist manual completo en el Xiaomi con backend activo y misma Wi-Fi. Este checkpoint impide declarar aceptada la Fase 15 antes de esa prueba.
-- Recompilar si cambia la IP LAN de la PC.
+- Completar en el dispositivo lo que el recorrido automatizado todavía no cubre: chat con el administrador, recepción de una notificación push y navegación desde ella, bloqueo biométrico y su alternativa, y el detalle con la línea de tiempo de un pedido.
+- Recompilar si cambia la IP LAN de la PC. Conviene reservarla en el router por dirección MAC: la URL de la API se resuelve al compilar, no en tiempo de ejecución.
+- Los usuarios de prueba `cliente.e2e.*@techstore.test` y el pedido 58 quedaron en la base de desarrollo.
 - Para Google Play real, usar API HTTPS pública, perfil `production` y completar Play Console.
 - Para iOS, aportar membresía/credenciales Apple autorizadas y efectuar TestFlight/App Store.
