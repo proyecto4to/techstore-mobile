@@ -70,6 +70,15 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   android: {
     package: 'com.techstore.mobile',
+    // Android entrega las notificaciones por Firebase Cloud Messaging, y este
+    // archivo es el que le dice a qué proyecto pertenece la app. Se incrusta al
+    // compilar: sin él, el teléfono ni siquiera puede pedir su token de push.
+    //
+    // No está en el repositorio a propósito. Se descarga de la consola de
+    // Firebase (Configuración del proyecto → Tus apps → Android) y va en la raíz
+    // de esta carpeta; sin ese archivo el build falla, que es mejor a que salga
+    // un APK mudo sin que nadie lo note.
+    googleServicesFile: './google-services.json',
     adaptiveIcon: {
       backgroundColor: '#0F172A',
       foregroundImage: './assets/images/techstore-icon.png',
