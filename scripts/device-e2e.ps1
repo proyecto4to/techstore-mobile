@@ -11,20 +11,34 @@ $adb = Join-Path $root 'artifacts\tools\android-platform-tools\platform-tools\ad
 $evidence = Join-Path $root 'artifacts\device-e2e\run'
 New-Item -ItemType Directory -Force -Path $evidence | Out-Null
 
-function Adb([Parameter(ValueFromRemainingArguments = $true)] [string[]]$Arguments) {
-    & $adb @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "ADB falló: $($Arguments -join ' ')" }
+# Función simple a propósito: con un param() tipado, PowerShell intenta enlazar
+# los flags de adb como parámetros propios y "monkey -p" aborta con "el nombre
+# de parámetro 'p' es ambiguo".
+function Adb {
+    & $adb @args
+    if ($LASTEXITCODE -ne 0) { throw "ADB falló: $($args -join ' ')" }
 }
 
-function Dump([string]$Name) {
+# Leer la pantalla ocurre decenas de veces mientras se espera un elemento;
+# sacarle una captura a cada sondeo multiplicaba por cinco lo que tarda el
+# recorrido. La imagen sólo se necesita cuando la pantalla es evidencia.
+function Read-Ui([string]$Name = 'current') {
     Adb shell uiautomator dump /sdcard/techstore-e2e.xml | Out-Null
     Adb pull /sdcard/techstore-e2e.xml (Join-Path $evidence "$Name.xml") | Out-Null
-    & $adb exec-out screencap -p > (Join-Path $evidence "$Name.png")
     [xml](Get-Content -LiteralPath (Join-Path $evidence "$Name.xml"))
 }
 
+function Dump([string]$Name) {
+    $ui = Read-Ui $Name
+    # screencap al teléfono y después pull: redirigir exec-out con ">" pasa el
+    # PNG por el decodificador de texto de PowerShell y lo deja corrupto.
+    Adb shell screencap -p /sdcard/techstore-e2e.png | Out-Null
+    Adb pull /sdcard/techstore-e2e.png (Join-Path $evidence "$Name.png") | Out-Null
+    $ui
+}
+
 function Find-Node([xml]$Ui, [string]$Value) {
-    @($Ui.SelectNodes('//node') | Where-Object {
+    @($Ui.GetElementsByTagName('node') | Where-Object {
         $_.text -eq $Value -or $_.'content-desc' -eq $Value -or $_.'resource-id' -eq $Value -or
         $_.'resource-id' -eq "com.techstore.mobile:id/$Value"
     }) | Sort-Object -Property @{ Expression = { if ($_.'clickable' -eq 'true') { 0 } else { 1 } } },
@@ -39,10 +53,26 @@ function Center($Node) {
     [pscustomobject]@{ X = ([int]$Matches[1] + [int]$Matches[3]) / 2; Y = ([int]$Matches[2] + [int]$Matches[4]) / 2 }
 }
 
+# Al salir de un campo de contraseña, Google ofrece guardarla y ese diálogo se
+# monta encima de la app: tapa el botón de enviar y el recorrido se cae sin que
+# haya nada roto en TechStore. Se descarta con "ahora no", que no guarda nada.
+function Dismiss-SystemDialog([xml]$Ui) {
+    $descartar = @($Ui.GetElementsByTagName('node') | Where-Object {
+        $_.'resource-id' -eq 'android:id/autofill_save_no' -or
+        $_.'resource-id' -eq 'com.google.android.gms:id/cancel'
+    }) | Select-Object -First 1
+    if (-not $descartar) { return $false }
+    $punto = Center $descartar
+    Adb shell input tap ([int]$punto.X) ([int]$punto.Y) | Out-Null
+    Start-Sleep -Milliseconds 700
+    return $true
+}
+
 function Wait-Node([string]$Value, [int]$TimeoutSeconds = 20) {
     $limit = (Get-Date).AddSeconds($TimeoutSeconds)
     do {
-        $ui = Dump 'current'
+        $ui = Read-Ui
+        if (Dismiss-SystemDialog $ui) { $ui = Read-Ui }
         $node = Find-Node $ui $Value
         if ($node) { return $node }
         Start-Sleep -Milliseconds 700
@@ -70,76 +100,101 @@ function Enter([string]$Id, [string]$Value) {
 
 function Save([string]$Name, [string]$Expected) {
     $ui = Dump $Name
+    if (Dismiss-SystemDialog $ui) { $ui = Dump $Name }
     if (-not (Find-Node $ui $Expected)) { throw "Evidencia '$Name' no contiene '$Expected'" }
     "PASS $Name => $Expected"
+}
+
+function Invoke-Recorrido {
+    Adb shell am force-stop com.techstore.mobile | Out-Null
+    Adb shell monkey -p com.techstore.mobile -c android.intent.category.LAUNCHER 1 | Out-Null
+    # Arranque en frío: splash, runtime nativo y bundle JavaScript. Una espera
+    # fija alcanzaba con la app caliente y en frío dejaba un dump vacío, que se
+    # leía como "la pantalla no dice Inicio" cuando todavía no había pantalla.
+    Wait-Node 'Inicio' 90 | Out-Null
+    Save '01-launch' 'Inicio'
+
+    Tap 'Cuenta'
+    Tap 'Iniciar sesión'
+    Tap 'login-register'
+    Save '02-register' 'Crear cuenta'
+    Enter 'register-nombre' 'Cliente'
+    Enter 'register-apellido' 'E2E'
+    Enter 'register-email' $Email
+    Enter 'register-password' $Password
+    Enter 'register-confirm-password' $Password
+    Tap 'register-submit'
+    Wait-Node 'Mi cuenta' 25 | Out-Null
+    Save '03-account' 'Cliente E2E'
+
+    Tap 'Cerrar sesión'
+    Wait-Node 'Iniciar sesión' 20 | Out-Null
+    Tap 'Iniciar sesión'
+    Enter 'login-email' $Email
+    Enter 'login-password' $Password
+    Tap 'login-submit'
+    Wait-Node 'Mi cuenta' 25 | Out-Null
+    Save '04-login' 'Cliente E2E'
+
+    Tap 'Buscar'
+    Enter 'catalog-search' ($ProductQuery -replace ' ', '%s')
+    Tap "catalog-product-$ProductId" 25
+    Save '05-product' 'Guardar en favoritos'
+    Tap 'Guardar en favoritos'
+    Wait-Node 'Quitar de favoritos' 20 | Out-Null
+    Save '06-favorite' 'Quitar de favoritos'
+    Tap 'product-add-to-cart'
+    Wait-Node 'cart-checkout' 25 | Out-Null
+    Save '07-cart' 'Precio y disponibilidad verificados por TechStore'
+    Tap 'cart-checkout'
+    Wait-Node 'Dirección de entrega' 20 | Out-Null
+    Tap 'Agregar dirección'
+    Enter 'address-nombreDestinatario' 'Cliente E2E'
+    Enter 'address-telefono' '0981123456'
+    Enter 'address-departamento' 'Central'
+    Enter 'address-ciudad' 'San%sLorenzo'
+    Enter 'address-direccionLinea1' 'Avenida%sE2E%s123'
+    Enter 'address-referencia' 'Prueba%sautomatizada%sTechStore'
+    Tap 'address-save'
+    Wait-Node 'address-continue' 25 | Out-Null
+    Save '08-address' 'Cliente E2E'
+    Tap 'address-continue'
+    Wait-Node 'shipping-continue' 25 | Out-Null
+    $shippingUi = Dump '09-shipping'
+    $rate = $shippingUi.GetElementsByTagName('node') | Where-Object { $_.'resource-id' -like 'com.techstore.mobile:id/shipping-rate-*' } | Select-Object -First 1
+    if (-not $rate) { throw 'No se encontró una tarifa de envío' }
+    $ratePoint = Center $rate
+    Adb shell input tap ([int]$ratePoint.X) ([int]$ratePoint.Y) | Out-Null
+    Tap 'shipping-continue'
+    Tap 'payment-PAGO_EN_LOCAL'
+    Tap 'payment-continue'
+    Wait-Node 'checkout-confirm' 25 | Out-Null
+    Save '10-review' 'Confirmar pedido'
+
+    'DEVICE_E2E_READY_FOR_CHECKOUT'
 }
 
 if (-not (Test-Path -LiteralPath $adb)) { throw 'ADB no está disponible' }
 if (-not (& $adb devices | Select-String '\sdevice$' | Select-Object -First 1)) { throw 'No hay Android autorizado' }
 
-Adb shell am force-stop com.techstore.mobile | Out-Null
-Adb shell monkey -p com.techstore.mobile -c android.intent.category.LAUNCHER 1 | Out-Null
-Start-Sleep -Seconds 3
-Save '01-launch' 'Inicio'
-
-Tap 'Cuenta'
-Tap 'Iniciar sesión'
-Tap 'login-register'
-Save '02-register' 'Crear cuenta'
-Enter 'register-nombre' 'Cliente'
-Enter 'register-apellido' 'E2E'
-Enter 'register-email' $Email
-Enter 'register-password' $Password
-Enter 'register-confirm-password' $Password
-Adb shell input keyevent 4 | Out-Null
-Tap 'register-submit'
-Wait-Node 'Mi cuenta' 25 | Out-Null
-Save '03-account' 'Cliente E2E'
-
-Tap 'Cerrar sesión'
-Wait-Node 'Iniciar sesión' 20 | Out-Null
-Tap 'Iniciar sesión'
-Enter 'login-email' $Email
-Enter 'login-password' $Password
-Adb shell input keyevent 4 | Out-Null
-Tap 'login-submit'
-Wait-Node 'Mi cuenta' 25 | Out-Null
-Save '04-login' 'Cliente E2E'
-
-Tap 'Buscar'
-Enter 'catalog-search' ($ProductQuery -replace ' ', '%s')
-Tap "catalog-product-$ProductId" 25
-Save '05-product' 'Guardar en favoritos'
-Tap 'Guardar en favoritos'
-Wait-Node 'Quitar de favoritos' 20 | Out-Null
-Save '06-favorite' 'Quitar de favoritos'
-Tap 'product-add-to-cart'
-Wait-Node 'cart-checkout' 25 | Out-Null
-Save '07-cart' 'Precio y disponibilidad verificados por TechStore'
-Tap 'cart-checkout'
-Wait-Node 'Dirección de entrega' 20 | Out-Null
-Tap 'Agregar dirección'
-Enter 'address-nombreDestinatario' 'Cliente E2E'
-Enter 'address-telefono' '0981123456'
-Enter 'address-departamento' 'Central'
-Enter 'address-ciudad' 'San%sLorenzo'
-Enter 'address-direccionLinea1' 'Avenida%sE2E%s123'
-Enter 'address-referencia' 'Prueba%sautomatizada%sTechStore'
-Adb shell input keyevent 4 | Out-Null
-Tap 'address-save'
-Wait-Node 'address-continue' 25 | Out-Null
-Save '08-address' 'Cliente E2E'
-Tap 'address-continue'
-Wait-Node 'shipping-continue' 25 | Out-Null
-$shippingUi = Dump '09-shipping'
-$rate = $shippingUi.SelectNodes('//node') | Where-Object { $_.'resource-id' -like 'com.techstore.mobile:id/shipping-rate-*' } | Select-Object -First 1
-if (-not $rate) { throw 'No se encontró una tarifa de envío' }
-$ratePoint = Center $rate
-Adb shell input tap ([int]$ratePoint.X) ([int]$ratePoint.Y) | Out-Null
-Tap 'shipping-continue'
-Tap 'payment-PAGO_EN_LOCAL'
-Tap 'payment-continue'
-Wait-Node 'checkout-confirm' 25 | Out-Null
-Save '10-review' 'Confirmar pedido'
-
-'DEVICE_E2E_READY_FOR_CHECKOUT'
+# El teclado virtual es el enemigo de un recorrido por coordenadas: el dump de
+# uiautomator describe el layout entero, incluida la franja que el teclado tapa,
+# así que un toque dirigido a un campo de abajo termina pegando sobre una tecla
+# —o sobre la barra de sugerencias, que abre los ajustes de Gboard—. Se apaga el
+# método de entrada mientras dura la prueba: "input text" inyecta los caracteres
+# igual, porque no depende del teclado en pantalla.
+$ime = (& $adb shell settings get secure default_input_method 2>$null).Trim()
+try {
+    if ($ime -and $ime -ne 'null') {
+        & $adb shell ime disable $ime | Out-Null
+        Start-Sleep -Milliseconds 800
+    }
+    Invoke-Recorrido
+} finally {
+    # Pase lo que pase, el teléfono se devuelve con su teclado: dejarlo apagado
+    # por una prueba fallida sería peor que no haberla corrido.
+    if ($ime -and $ime -ne 'null') {
+        & $adb shell ime enable $ime | Out-Null
+        & $adb shell ime set $ime | Out-Null
+    }
+}
