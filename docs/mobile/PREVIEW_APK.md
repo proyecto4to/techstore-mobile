@@ -1,7 +1,7 @@
 # APK Android — candidato de Fase 15
 
 **Estado:** generado, descargado y verificado técnicamente; pendiente aceptación manual  
-**Fecha:** 2026-08-13  
+**Fecha:** 2026-08-16  
 **Dispositivo objetivo:** Xiaomi Redmi Note 8 Pro  
 **Código incluido:** Fases 0 a 15.
 
@@ -10,41 +10,49 @@
 | Dato | Valor |
 | --- | --- |
 | Proyecto EAS | `@proyecto4toano/techstore-mobile` |
-| Build ID | `a759bc63-77c9-4e19-a66b-f06c49971b81` |
+| Build ID | `7932b96d-2eb3-4519-b032-c62e8d8fcbd5` |
 | Estado EAS | `FINISHED` |
 | Perfil | `preview` / distribución interna / APK autónomo |
 | Versión | `1.0.0` |
-| versionCode | `11` |
+| versionCode | `12` |
 | Expo SDK | `57.0.0` |
 | Android package | `com.techstore.mobile` |
-| Tamaño | 124.892.480 bytes (119,10 MiB) |
-| SHA-256 | `3E74FEC80AFC3E1FDE35CDDDDC16A8EDD0982D1450976BD844430ECF4F10D627` |
-| Expiración del enlace directo | `2026-08-28 00:18 UTC` |
+| Tamaño | 124.892.476 bytes (119,11 MiB) |
+| SHA-256 | `38CA7485A4E05B4974963AAD00DB5117C0015C2CB6DECF91A9E16405CB01C214` |
+| Expiración estimada del enlace directo | `2026-08-29 01:10 UTC` |
 
 Descarga directa:
 
-<https://expo.dev/artifacts/eas/PGkTUX82E6mqyBFqCbDNus-a9fLuMsNK61fb-cnDwA0.apk>
+<https://expo.dev/artifacts/eas/SmGkBt5u6UUwKLO_Lpk97IUTwB-c_53RutzzvV8JB54.apk>
 
 Página persistente del build:
 
-<https://expo.dev/accounts/proyecto4toano/projects/techstore-mobile/builds/a759bc63-77c9-4e19-a66b-f06c49971b81>
+<https://expo.dev/accounts/proyecto4toano/projects/techstore-mobile/builds/7932b96d-2eb3-4519-b032-c62e8d8fcbd5>
 
 La URL directa es temporal. Si expira, la página conserva el registro; si Expo ya retiró el archivo, se debe generar otro APK con `eas build --platform android --profile preview`.
 
+## Por qué el v12 reemplaza al v11
+
+El v11 quedó inservible para esta red: lleva incorporada la IP `192.168.16.125`, que la PC ya no tiene. La URL de la API se resuelve al compilar, no en tiempo de ejecución, así que un cambio de IP obliga a un build nuevo. El v12 se generó con la IP vigente y es el único candidato válido mientras la PC conserve esa dirección.
+
+Verificado el 2026-08-16: v11 y v12 comparten el mismo certificado de firma (`793E0D04D7E78B8569A83295ED7C62A53A684069BFB7F9DF798D6FCAEA2EC88B`, esquema v2) y el `versionCode` sube de 11 a 12, así que el v12 se instala como actualización sobre el v11 sin desinstalar ni perder datos.
+
 ## Verificación técnica
 
-- Descarga completa y ZIP/APK legible: 1.413 entradas.
-- Contiene manifiesto y bibliotecas `arm64-v8a`, `armeabi-v7a` y `x86_64`; el Redmi queda cubierto por ARM64.
-- Firma Android v2 verificada con la herramienta oficial `apksig`: cero errores y cero advertencias. El certificado SHA-256 coincide exactamente con el APK v8 que sí se instalaba.
+- ZIP/APK legible y firma Android v2 válida, leída del bloque de firma con `scripts/inspect-apk-signature.mjs`.
+- Certificado idéntico al de los APK anteriores que sí se instalaban; validez hasta 2053.
+- Contiene bibliotecas `arm64-v8a`, `armeabi-v7a` y `x86_64`; el Redmi queda cubierto por ARM64.
 - Escaneo de secretos aprobado. `assets/expo-root.pem` es el certificado raíz público de Expo, no una clave privada.
-- Copia local ignorada por Git: `artifacts/phase15/techstore-mobile-1.0.0-preview-v11.apk`.
+- Copia local ignorada por Git: `artifacts/device-e2e/techstore-mobile-1.0.0-preview-v12.apk`, en el repositorio del backend.
 
 ## Red configurada
 
-- API: `http://192.168.16.125:8090/api/v1`
-- WebSocket: `ws://192.168.16.125:8090/ws`
+- API: `http://192.168.100.8:8090/api/v1`
+- WebSocket: `ws://192.168.100.8:8090/ws`
 
-Antes de probar, iniciar TechStore y conectar teléfono y PC a la misma Wi-Fi. La API usa `8090`; `8080` y `8181` quedan reservados para GeneXus/Tomcat. Este APK no necesita Metro ni Expo Go. Si cambia la IP de la PC, se debe reservar esa IP o generar otro APK con la nueva URL.
+Antes de probar, iniciar TechStore y conectar teléfono y PC a la misma Wi-Fi. La API usa `8090`; `8080` y `8181` quedan reservados para GeneXus/Tomcat. Este APK no necesita Metro ni Expo Go.
+
+Si la PC vuelve a cambiar de IP, este APK deja de conectar y hay que compilar otro. Para evitar repetirlo, conviene reservar la IP en el router por dirección MAC.
 
 ## Instalación en Xiaomi
 
@@ -72,10 +80,9 @@ La Fase 15 sólo podrá marcarse aceptada después de completar este checklist e
 
 ## Si Android muestra “No se instaló la app”
 
-Los APK v8 y v9 fueron comprobados con el mismo certificado de firma. Android acepta una actualización sólo si coinciden package/firma y el `versionCode` no disminuye. Para descartar una descarga parcial o una variante más nueva ya instalada:
+Android acepta una actualización sólo si coinciden package y firma y el `versionCode` no disminuye. Las tres condiciones están verificadas para el v12, así que el mensaje genérico de MIUI apunta a otra causa:
 
 1. Eliminar únicamente el archivo APK fallido de la carpeta **Descargas**; no desinstalar todavía la app que funciona.
-2. Descargar el APK correctivo v11 desde el enlace documentado en esta página cuando esté disponible.
-3. Confirmar que la descarga terminó por completo antes de abrirla y disponer de al menos 500 MB libres durante la instalación.
-4. Abrirlo desde **Archivos/Descargas**, aceptar la actualización y el aviso de fuente desconocida.
-5. Si v11 también falla, no borrar datos: conectar el teléfono por USB y obtener el código exacto con `adb install -r archivo.apk`. El mensaje genérico de MIUI no permite distinguir falta de espacio, política del instalador o conflicto residual.
+2. Confirmar que la descarga terminó por completo antes de abrirla y disponer de al menos 500 MB libres durante la instalación.
+3. Abrirlo desde **Archivos/Descargas**, aceptar la actualización y el aviso de fuente desconocida.
+4. Si vuelve a fallar, no borrar datos: conectar el teléfono por USB y obtener el código exacto con `adb install -r archivo.apk`. El mensaje de MIUI no permite distinguir falta de espacio, política del instalador o conflicto residual.
