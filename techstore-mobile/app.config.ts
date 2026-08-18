@@ -74,11 +74,16 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // archivo es el que le dice a qué proyecto pertenece la app. Se incrusta al
     // compilar: sin él, el teléfono ni siquiera puede pedir su token de push.
     //
-    // No está en el repositorio a propósito. Se descarga de la consola de
-    // Firebase (Configuración del proyecto → Tus apps → Android) y va en la raíz
-    // de esta carpeta; sin ese archivo el build falla, que es mejor a que salga
-    // un APK mudo sin que nadie lo note.
-    googleServicesFile: './google-services.json',
+    // No está en el repositorio a propósito, y de ahí la variable: EAS Build sólo
+    // sube al servidor lo que git rastrea, así que un archivo ignorado nunca llega
+    // y la compilación falla con "google-services.json is missing". La copia vive
+    // en EAS como variable de tipo archivo (GOOGLE_SERVICES_JSON, secreta) y en la
+    // nube esa variable trae la ruta del archivo ya descargado.
+    //
+    // El camino local sigue valiendo para compilar desde esta máquina: se descarga
+    // de la consola de Firebase (Configuración del proyecto → Tus apps → Android)
+    // y va en la raíz de esta carpeta.
+    googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? './google-services.json',
     adaptiveIcon: {
       backgroundColor: '#0F172A',
       foregroundImage: './assets/images/techstore-icon.png',
