@@ -1,7 +1,7 @@
 # Fase 15 — Builds y preparación de distribución
 
-**Estado:** implementación y builds terminados; recorrido crítico aceptado en dispositivo el 2026-08-17, con cuatro puntos del checklist todavía sin cubrir  
-**Fecha:** 2026-08-13, actualizado el 2026-08-17
+**Estado:** implementación y builds terminados; recorrido crítico y notificaciones push aceptados en dispositivo, con tres puntos del checklist todavía sin cubrir  
+**Fecha:** 2026-08-13, actualizado el 2026-08-18
 
 ## Resultado técnico
 
@@ -68,6 +68,7 @@ Ejecutada sobre un Xiaomi Redmi Note 8 Pro (Android 11, MIUI Global 12.5.8) con 
 | Método de pago y resumen | Verificado: total Gs. 135.000 |
 | **Confirmación del pedido** | **Verificado: pedido 58 registrado, carrito vaciado** |
 | Historial de pedidos | Verificado: el pedido aparece en Mis pedidos como Pendiente |
+| **Notificación push** | **Verificada el 2026-08-18: "Pedido 60 recibido" llegó a la barra del teléfono** |
 
 La evidencia —volcados de pantalla y capturas de cada paso— queda en `artifacts/device-e2e/run`, fuera del repositorio.
 
@@ -75,8 +76,8 @@ El recorrido está automatizado en `scripts/device-e2e.ps1`. La prueba modifica 
 
 ## Pendientes
 
-- Completar en el dispositivo lo que el recorrido automatizado todavía no cubre: chat con el administrador, recepción de una notificación push y navegación desde ella, bloqueo biométrico y su alternativa, y el detalle con la línea de tiempo de un pedido.
+- Completar en el dispositivo lo que todavía no se probó: chat con el administrador, bloqueo biométrico y su alternativa, y el detalle con la línea de tiempo de un pedido.
 - Recompilar si cambia la IP LAN de la PC. Conviene reservarla en el router por dirección MAC: la URL de la API se resuelve al compilar, no en tiempo de ejecución.
-- Los usuarios de prueba `cliente.e2e.*@techstore.test` y el pedido 58 quedaron en la base de desarrollo.
+- Los datos de las pruebas en dispositivo se borraron de la base de desarrollo, devolviendo el stock descontado y los correlativos de factura, pago y pedido.
 - Para Google Play real, usar API HTTPS pública, perfil `production` y completar Play Console.
 - Para iOS, aportar membresía/credenciales Apple autorizadas y efectuar TestFlight/App Store.
