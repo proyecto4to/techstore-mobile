@@ -16,8 +16,16 @@ function assertPreviewUrl(profileName) {
   const value = profile.env?.EXPO_PUBLIC_API_URL;
   if (!value) fail(`${profileName} no define EXPO_PUBLIC_API_URL.`);
   const url = new URL(value);
-  if (url.port !== '8090' || !url.pathname.replace(/\/$/, '').endsWith('/api/v1')) {
-    fail(`${profileName} debe apuntar a la API /api/v1 en 8090.`);
+  if (!url.pathname.replace(/\/$/, '').endsWith('/api/v1')) {
+    fail(`${profileName} debe apuntar a la API en /api/v1.`);
+  }
+  // Hay dos formas legitimas de alcanzar la API: por la red local, donde el
+  // puerto va explicito, o por una URL publica HTTPS, donde el 443 es implicito
+  // y no aparece. Exigir 8090 siempre dejaba fuera la segunda.
+  const esLan = url.protocol === 'http:';
+  if (esLan && url.port !== '8090') fail(`${profileName} en HTTP debe usar el puerto 8090.`);
+  if (!esLan && url.port !== '' && url.port !== '8090') {
+    fail(`${profileName} en HTTPS debe usar el puerto estandar o 8090.`);
   }
   if (['8080', '8181'].includes(url.port)) fail(`${profileName} usa un puerto reservado.`);
 }
